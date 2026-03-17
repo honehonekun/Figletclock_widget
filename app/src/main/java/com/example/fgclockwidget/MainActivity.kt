@@ -6,16 +6,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -77,23 +85,39 @@ suspend fun setFont(context: Context, font: String) {
 
 @Composable
 fun Greeting(context: Context, modifier: Modifier = Modifier) {
-
+    var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
     Column(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
-        fontList.forEach { font ->
-            Button(onClick = {
-                scope.launch {
-                    setFont(context, font)
+        Box(modifier = Modifier.padding(16.dp)) {
+            Button(onClick = { expanded = true }) {
+                Text("フォントを選択")
+            }
+
+            // DropdownMenu はトリガーとなる Button と同じ Box内に入れる
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                fontList.forEach { font ->
+                    DropdownMenuItem(
+                        text = { Text(font) },
+                        onClick = {
+                            expanded = false
+                            scope.launch {
+                                setFont(context, font)
+                            }
+                        }
+                    )
                 }
-            }) {
-                Text(font)
             }
         }
     }
+
 }
 
 
