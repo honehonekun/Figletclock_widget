@@ -11,7 +11,9 @@ This is a widget that displays the time using Figlet.
 
 # Usage
 
-Please download it from the release page.
+- Please download it from the release page.
+- Please disable battery optimization.
+- (ANDROID14+) Please enable alarm permissions.
 
 # Features to be implemented
 
