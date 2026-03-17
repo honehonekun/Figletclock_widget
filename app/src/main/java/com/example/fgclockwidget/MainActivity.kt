@@ -8,8 +8,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -23,13 +27,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.glance.appwidget.updateAll
 import com.example.fgclockwidget.WidgetSettings.fontList
 import com.example.fgclockwidget.ui.theme.FgclockwidgetTheme
+import com.github.skydoves.colorpicker.compose.BrightnessSlider
+import com.github.skydoves.colorpicker.compose.HsvColorPicker
+import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -58,6 +68,8 @@ object WidgetSettings {
     //キー設定
     val FONT = stringPreferencesKey("font")
     val LAST_UPDATE_TIME = stringPreferencesKey("last_update_time") // 追加
+    val TEXT_COLOR = intPreferencesKey("text_color") //COLOR
+
     val fontList = listOf(
         "alligator.flf",
         "alligator2.flf",
@@ -83,8 +95,22 @@ suspend fun setFont(context: Context, font: String) {
     FgClockWidget().updateAll(context)
 }
 
+suspend fun setColor(context: Context, color: Color) {
+    context.dataStore.edit { prefs ->
+        prefs[WidgetSettings.TEXT_COLOR] = color.toArgb()
+
+        val now =
+            java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        prefs[WidgetSettings.LAST_UPDATE_TIME] = now
+    }
+    FgClockWidget().updateAll(context)
+}
+
 @Composable
 fun Greeting(context: Context, modifier: Modifier = Modifier) {
+
+    var color: Color by remember { mutableStateOf(Color.White) }
+    val controller = rememberColorPickerController()
     var expanded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -95,7 +121,7 @@ fun Greeting(context: Context, modifier: Modifier = Modifier) {
     ) {
         Box(modifier = Modifier.padding(16.dp)) {
             Button(onClick = { expanded = true }) {
-                Text("フォントを選択")
+                Text("Choose Font")
             }
 
             // DropdownMenu はトリガーとなる Button と同じ Box内に入れる
@@ -116,6 +142,33 @@ fun Greeting(context: Context, modifier: Modifier = Modifier) {
                 }
             }
         }
+        HsvColorPicker(
+            modifier = Modifier.size(156.dp),
+            controller = controller,
+            onColorChanged = { value ->
+                color = value.color
+            }
+        )
+        Spacer(Modifier.height(16.dp))
+        BrightnessSlider(
+            //明暗スライダー
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .padding(horizontal = 16.dp),
+            controller = controller,
+        )
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = {
+            scope.launch {
+                setColor(context, color)
+            }
+        }
+        ) {
+            Text(text = "Set Color")
+        }
+
+
     }
 
 }

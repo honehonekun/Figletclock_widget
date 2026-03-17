@@ -1,7 +1,6 @@
 package com.example.fgclockwidget
 
 
-import android.R.attr.font
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -11,6 +10,7 @@ import android.icu.util.Calendar
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.edit
@@ -30,7 +30,6 @@ import androidx.glance.layout.padding
 import com.github.lalyos.jfiglet.FigletFont
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 
 class FgClockWidget : GlanceAppWidget() {
@@ -49,6 +48,8 @@ class FgClockWidget : GlanceAppWidget() {
             val font = prefs[WidgetSettings.FONT] ?: "alligator2.flf"
             //時刻を取得
             val timeString = prefs[WidgetSettings.LAST_UPDATE_TIME] ?: "--:--"
+
+            val textColor = prefs[WidgetSettings.TEXT_COLOR] ?: Color.White.toArgb()
             GlanceTheme {
                 val date = java.time.LocalDate.now().toString()
                 //時刻を描画
@@ -63,8 +64,8 @@ class FgClockWidget : GlanceAppWidget() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = GlanceModifier.cornerRadius(0.dp).padding(16.dp)
                     ) {
-                        GlanceText(timef, R.font.cascadiamono, 10.sp, color = Color.White)
-                        GlanceText(date, R.font.cascadiamono, 14.sp, color = Color.White)
+                        GlanceText(timef, R.font.cascadiamono, 10.sp, color = Color(textColor))
+                        GlanceText(date, R.font.cascadiamono, 14.sp, color = Color(textColor))
                     }
                 }
             }
@@ -143,7 +144,10 @@ class FgClockWidgetReceiver : GlanceAppWidgetReceiver() {
         super.onReceive(context, intent)
 
         // ログを出してタイミングを確認できるようにする
-        android.util.Log.d("FgClock", "onReceive: ${intent.action} ID: ${System.identityHashCode(intent)}")
+        android.util.Log.d(
+            "FgClock",
+            "onReceive: ${intent.action} ID: ${System.identityHashCode(intent)}"
+        )
         //intentのアクションがどれかなら
         if (intent.action == ACTION_UPDATE_TICK ||
             intent.action == Intent.ACTION_BOOT_COMPLETED ||
@@ -152,7 +156,8 @@ class FgClockWidgetReceiver : GlanceAppWidgetReceiver() {
             kotlinx.coroutines.runBlocking(Dispatchers.IO) {
                 //datastoreを編集
                 context.dataStore.edit { prefs ->
-                    val now = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                    val now = java.time.LocalTime.now()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
                     //datastore内の時刻を現在時刻に編集
                     prefs[WidgetSettings.LAST_UPDATE_TIME] = now
                 }
@@ -187,7 +192,8 @@ class FgClockWidgetReceiver : GlanceAppWidgetReceiver() {
         kotlinx.coroutines.runBlocking(Dispatchers.IO) {
             //datastoreを編集
             context.dataStore.edit { prefs ->
-                val now = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+                val now = java.time.LocalTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
                 //datastore内の時刻を現在時刻に編集
                 prefs[WidgetSettings.LAST_UPDATE_TIME] = now
             }
@@ -206,8 +212,6 @@ class FgClockWidgetReceiver : GlanceAppWidgetReceiver() {
     //時刻をfigletの文字列にして返す
     return FigletCache.render(context, font, timeString)
 }*/
-
-
 
 
 //figletのキャッシュ
