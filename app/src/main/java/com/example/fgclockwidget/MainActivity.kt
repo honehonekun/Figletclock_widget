@@ -27,6 +27,8 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,7 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.fgclockwidget.WidgetSettings.fontList
 import com.example.fgclockwidget.ui.theme.FgclockwidgetTheme
@@ -144,15 +148,15 @@ fun FigletClockApp(context: Context, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
 
     Column(
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement =Arrangement.SpaceAround,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
     ) {
 
         Card(border = BorderStroke(2.dp, color)) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 HsvColorPicker(
-                    modifier = Modifier.size(256.dp),
+                    modifier = Modifier.size(200.dp),
                     controller = controller,
                     onColorChanged = { value ->
                         color = value.color
@@ -166,25 +170,39 @@ fun FigletClockApp(context: Context, modifier: Modifier = Modifier) {
                         .height(16.dp),
                     controller = controller,
                 )
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        Button(
-            onClick = {
-                scope.launch {
-                    setColor(context, color)
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            setColor(context, color)
+                        }
+                    }, shape = RoundedCornerShape(8.dp), border = BorderStroke(2.dp,color),
+                    modifier = Modifier.width(256.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(painterResource(R.drawable.setcolor), contentDescription = "Set Color",)
+                    }
                 }
-            }, shape = RoundedCornerShape(4.dp), modifier = Modifier.width(256.dp)
-        ) {
-            Text(text = "Set Color")
+            }
+
         }
+        Spacer(Modifier.height(24.dp))
         Box(modifier = Modifier.padding(16.dp)) {
-            Button(
+            OutlinedButton(
                 onClick = { expanded = true },
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.width(256.dp)
+                modifier = Modifier.width(256.dp),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Choose Font")
+                Column(
+                    modifier = Modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+                ) {
+                    Spacer(Modifier.height(8.dp))
+                    Icon(painterResource(R.drawable.choosefont2), contentDescription = "Choose Font",)
+                }
             }
 
             // DropdownMenu はトリガーとなる Button と同じ Box内に入れる
