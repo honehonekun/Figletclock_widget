@@ -1,5 +1,6 @@
 package com.example.fgclockwidget
 
+import android.app.AlarmManager
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,16 +20,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -53,6 +51,14 @@ import com.github.skydoves.colorpicker.compose.BrightnessSlider
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import kotlinx.coroutines.launch
+import android.os.PowerManager
+import android.provider.Settings
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -79,6 +85,20 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+fun isExactAlarmPermissionGranted(context: Context): Boolean {
+    return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.canScheduleExactAlarms()
+    } else {
+        true
+    }
+}
+
+fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+    return powerManager.isIgnoringBatteryOptimizations(context.packageName)
 }
 
 //拡張プロパティ　datastore をインスタンス化　by デリゲートによってシングルトン化
@@ -128,6 +148,61 @@ suspend fun setColor(context: Context, color: Color) {
 
 @Composable
 fun Greeting(context: Context, modifier: Modifier = Modifier) {
+    var showAlarmDialog by remember { mutableStateOf(false) }
+    var showBatteryDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!isExactAlarmPermissionGranted(context)) {
+            showAlarmDialog = true
+        }
+        if (!isIgnoringBatteryOptimizations(context)) {
+            showBatteryDialog = true
+        }
+    }
+
+    if (showAlarmDialog) {
+        AlertDialog(
+            onDismissRequest = { showAlarmDialog = false },
+            title = { Text("Enable Exact Alarm") },
+            text = { Text("To ensure your clock is updated accurately, please allow ”Alarm and Reminder Settings\" in the Settings menu.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAlarmDialog = false
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.fromParts("package", context.packageName, null)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(intent)
+                    }
+                }) { Text("Open Setting") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAlarmDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+    if (showBatteryDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatteryDialog = false },
+            title = { Text("Disable Battery Restrictions") },
+            text = { Text("To ensure the clock continues to update in the background, we recommend setting battery optimization to “No restrictions.”") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBatteryDialog = false
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                }) { Text("Open Setting") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatteryDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
 
     var color: Color by remember { mutableStateOf(Color.White) }
     val controller = rememberColorPickerController()
@@ -140,8 +215,8 @@ fun Greeting(context: Context, modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
 
-        Card (border = BorderStroke(2.dp,color)){
-            Column (modifier= Modifier.padding(16.dp)){
+        Card(border = BorderStroke(2.dp, color)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 HsvColorPicker(
                     modifier = Modifier.size(256.dp),
                     controller = controller,
@@ -160,16 +235,21 @@ fun Greeting(context: Context, modifier: Modifier = Modifier) {
             }
         }
         Spacer(Modifier.height(16.dp))
-        Button(onClick = {
-            scope.launch {
-                setColor(context, color)
-            }
-        }, shape = RoundedCornerShape(4.dp),modifier = Modifier.width(256.dp)
+        Button(
+            onClick = {
+                scope.launch {
+                    setColor(context, color)
+                }
+            }, shape = RoundedCornerShape(4.dp), modifier = Modifier.width(256.dp)
         ) {
             Text(text = "Set Color")
         }
         Box(modifier = Modifier.padding(16.dp)) {
-            Button(onClick = { expanded = true },shape =  RoundedCornerShape(4.dp),modifier = Modifier.width(256.dp)) {
+            Button(
+                onClick = { expanded = true },
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.width(256.dp)
+            ) {
                 Text("Choose Font")
             }
 
