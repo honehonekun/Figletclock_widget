@@ -1,4 +1,4 @@
-# FigletClock Widget
+# [FigletClock Widget](https://github.com/honehonekun/Figletclock_widget)
 
 This is a widget that displays the time using Figlet.
 
